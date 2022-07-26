@@ -1,6 +1,6 @@
-import { Component, ViewChild, ElementRef } from "@angular/core";
-import * as ScanditSDK from "scandit-sdk";
-import { BarcodePicker, ScanResult } from "scandit-sdk";
+import { Component } from '@angular/core';
+import * as ScanditSDK from 'scandit-sdk';
+import { Barcode } from 'scandit-sdk';
 
 @Component({
   selector: 'app-home',
@@ -9,31 +9,41 @@ import { BarcodePicker, ScanResult } from "scandit-sdk";
 })
 export class HomePage {
 
-  public scannerReady = false;
-  public showButton = false;
-  public showDescription = true;
-  public result = "";
+  constructor() {
+    ScanditSDK.configure("YOUR_SCANDIT_LICENSE_KEY_IS_NEEDED_HERE", {
+      engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/",
+    })
+      .then(() => {
+        return ScanditSDK.BarcodePicker.create(document.getElementById("scandit-barcode-picker"), {
+          scanningPaused: true,
+          accessCamera: false,
+          visible: false,
+          playSoundOnScan: true,
+          vibrateOnScan: true,
+          scanSettings: new ScanditSDK.ScanSettings({ enabledSymbologies: [
+            Barcode.Symbology.EAN8,
+            Barcode.Symbology.EAN13,
+            Barcode.Symbology.UPCA,
+            Barcode.Symbology.UPCE
+          ] }),
+        });
+      })
+      .then((barcodePicker) => {
+        // barcodePicker is ready here, show a message every time a barcode is scanned
+        barcodePicker.on("scan", (scanResult) => {
+          alert(scanResult.barcodes[0].data);
+        });
 
-  @ViewChild("barcodePicker") barcodePickerElement: ElementRef<HTMLDivElement & { barcodePicker: BarcodePicker }>;
-
-  public onReady(): void {
-    this.scannerReady = true;
-    this.showButton = true;
-  }
-
-  public onScan(scanResult: { detail: ScanResult }): void {
-    const calculatedString = scanResult.detail.barcodes.reduce((result, barcode) => {
-      return `${result} ${ScanditSDK.Barcode.Symbology.toHumanizedName(barcode.symbology)} : ${barcode.data}`;
-    }, "");
-
-    this.result = calculatedString;
-  }
-
-  public startBarcodePicker(): void {
-    this.showButton = false;
-    this.showDescription = false;
-
-    this.barcodePickerElement.nativeElement.barcodePicker.setVisible(true).resumeScanning();
+        barcodePicker.accessCamera()
+        .then(function () {
+          barcodePicker.setVisible(true).resumeScanning();
+        })
+        .catch((error) => {
+          if (error.message == "Permission denied") {
+            alert("Camera access denied by user!");
+          }
+        });
+      });
   }
 
 }
