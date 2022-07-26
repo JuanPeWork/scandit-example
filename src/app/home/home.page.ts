@@ -31,7 +31,10 @@ export class HomePage {
       .then((barcodePicker) => {
         // barcodePicker is ready here, show a message every time a barcode is scanned
         barcodePicker.on("scan", (scanResult) => {
-          alert(scanResult.barcodes[0].data);
+          // We pause bacoderPicker when we get a result before changing the page. 
+          barcodePicker.setVisible(false).pauseScanning(true);
+          this.router.navigateByUrl(`/result/${scanResult.barcodes[0].data}`);
+          
         });
 
         barcodePicker.accessCamera()
@@ -45,5 +48,12 @@ export class HomePage {
         });
       });
   }
+  
+  ionViewWillEnter() {
+    // We re-activate barcodePicker when we enter the page again.
+    barcodePicker.setVisible(true).resumeScanning(); 
+  }
+  
+  
 
 }
